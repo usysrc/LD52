@@ -9,26 +9,30 @@
 -- Imports
 --------------------------------------------------------------------------------
 
-local Gamestate     = requireLibrary("hump.gamestate")
-local Class         = requireLibrary("hump.class")
-local Vector        = requireLibrary("hump.vector")
+local Gamestate = requireLibrary("hump.gamestate")
+local Class     = requireLibrary("hump.class")
+local Vector    = requireLibrary("hump.vector")
 
 --------------------------------------------------------------------------------
 -- Class Definition
 --------------------------------------------------------------------------------
 
-Map = Class{
+Map = Class {
 	init = function(self)
 		self.data = {}
+		self.width = 0
+		self.height = 0
 	end,
-	set = function(self, i, j, what)
-		self.data[i..","..j] = what
+	set = function(self, i, j, z, what)
+		self.data[i .. "," .. j .. "," .. z] = what
 	end,
-	get = function(self, i, j)
-		return self.data[i..","..j]
+	get = function(self, i, j, z)
+		return self.data[i .. "," .. j .. "," .. z]
 	end,
-	isBlocked = function(self, i, j)
-		local t = self:get(i,j)
+	isBlocked = function(self, i, j, z)
+		local t = self:get(i, j)
 		return t and t.blocked
 	end
 }
+
+return Map

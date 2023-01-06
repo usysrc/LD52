@@ -18,18 +18,13 @@ function Game:enter()
 end
 
 function Game:update(dt)
-    Game.player:update(dt)
+
 end
 
 function Game:draw()
     love.graphics.print(love.timer.getFPS(), 0, 0)
     Game.cam:attach()
     Game.map:draw()
-    Game.player:draw()
     Game.cam:detach()
 
-end
-
-function Game:keypressed(key)
-    Game.player:keypressed(key)
 end
