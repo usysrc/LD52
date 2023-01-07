@@ -8,23 +8,23 @@ local GameMap   = require("src.entities.GameMap")
 local Player    = require("src.entities.Player")
 local Camera    = require("libs.hump.camera")
 
-Game = Gamestate.new()
+Death = Gamestate.new()
 
-function Game:enter()
-    Game.map = GameMap()
-    Game.cam = Camera(0, 0)
-    Game.cam.scale = 3
-    Game.player = Player(Game)
+function Death:enter()
+    Death.map = DeathMap()
+    Death.cam = Camera(0, 0)
+    Death.cam.scale = 3
+    Death.player = Player(Death)
 end
 
-function Game:update(dt)
+function Death:update(dt)
 
 end
 
-function Game:draw()
+function Death:draw()
     love.graphics.print(love.timer.getFPS(), 0, 0)
-    Game.cam:attach()
-    Game.map:draw()
-    Game.cam:detach()
+    Death.cam:attach()
+    Death.map:draw()
+    Death.cam:detach()
 
 end

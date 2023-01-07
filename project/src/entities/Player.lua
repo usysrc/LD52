@@ -1,36 +1,80 @@
+local const = require("src.const")
+
 return function(game)
     local player = {
-        x = 0,
-        y = 0,
-        vel = 100
+        x = 5 * const.tilewidth,
+        y = 5 * const.tileheight,
+        distance = 0,
+        vel = 100,
+        dir = 1,
+        color = { 1, 1, 1 }
+    }
+    -- animation frames
+    player.quads = {
+        love.graphics.newQuad(0, 0, 32, 32, Image.player:getWidth(), Image.player:getHeight()),
+        love.graphics.newQuad(32, 0, 32, 32, Image.player:getWidth(), Image.player:getHeight()),
+        love.graphics.newQuad(64, 0, 32, 32, Image.player:getWidth(), Image.player:getHeight()),
+        love.graphics.newQuad(96, 0, 32, 32, Image.player:getWidth(), Image.player:getHeight()),
     }
 
+    player.quad = player.quads[1]
+
+    player.frame = 0
+
+    player.animationSpeed = 10
+
     player.update = function(self, dt)
+        local x, y = 0, 0
+        local moved = false
         if love.keyboard.isDown("a") then
-            self.x = self.x - dt * self.vel
+            x = -dt * self.vel
+            self.dir = -1
+            moved = true
         end
         if love.keyboard.isDown("d") then
-            self.x = self.x + dt * self.vel
+            x = dt * self.vel
+            self.dir = 1
+            moved = true
         end
         if love.keyboard.isDown("w") then
-            self.y = self.y - dt * self.vel
+            y = -dt * self.vel
+            moved = true
         end
         if love.keyboard.isDown("s") then
-            self.y = self.y + dt * self.vel
+            y = dt * self.vel
+            moved = true
+        end
+        if moved then
+            self.frame = self.frame + dt * self.animationSpeed
+            self.quad = self.quads[1 + math.floor(self.frame) % 3]
+
+            -- constrain to game map
+            local tx, ty = self.x + x, self.y + y
+            local tile = game.map:get(math.floor(tx / const.tilewidth), math.floor(self.y / const.tileheight), 0)
+            if tile then
+                self.x = self.x + x
+            end
+            local tile = game.map:get(math.floor(self.x / const.tilewidth), math.floor(ty / const.tileheight), 0)
+            if tile then
+                self.y = self.y + y
+            end
         end
 
         -- lerp the camera to the postion of player
-        local dx, dy = (self.x - game.cam.x) * dt, (self.y - game.cam.y) * dt
-        game.cam:lookAt(game.cam.x + dx, game.cam.y + dy)
+        -- local lx, ly = game.cam:mousePosition()
+        -- local dx, dy = (self.x - game.cam.x) * dt, (self.y - game.cam.y) * dt
+        -- game.cam:lookAt(math.floor(game.cam.x + dx), math.floor(game.cam.y + dy))
+        game.cam:lookAt(self.x, self.y)
     end
 
     player.draw = function(self)
-        love.graphics.draw(Image.player, self.x, self.y)
+        love.graphics.setColor(self.color)
+        love.graphics.draw(Image.player, self.quad, self.x, self.y, 0, self.dir, 1, 16, 16)
     end
 
     player.keypressed = function(self, key)
 
     end
-
+    add(Game.objects, player)
     return player
 end
