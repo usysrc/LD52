@@ -4,6 +4,8 @@ local vector = requireLibrary("hump.vector")
 
 local TileObject = function(game, i, j, img, config)
     local tileObject = {
+        i = i,
+        j = j,
         x = i * const.tilewidth,
         y = j * const.tileheight,
         -- distance for z
@@ -80,8 +82,8 @@ end
 return {
     Rock = function(game, i, j) return TileObject(game, i, j, Image.rock, { name = "rock", maxhp = 12, hp = 12 }) end,
     Tree = function(game, i, j) return TileObject(game, i, j, Image.tree, { name = "tree", maxhp = 8, hp = 8 }) end,
-    Totem = function(game, i, j)
-        local tile = TileObject(game, i, j, Image.totem, { maxhp = 8, hp = 8 })
+    Expander = function(game, i, j)
+        local tile = TileObject(game, i, j, Image.expander, { name = "expander", maxhp = 8, hp = 8 })
         tile.afterDestroy = function(self)
             game.map:extend(i, j)
         end

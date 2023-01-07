@@ -28,7 +28,7 @@ function Game:update(dt)
 end
 
 function Game:draw()
-    love.graphics.setColor(62 / 255, 59 / 255, 101 / 255)
+    love.graphics.setColor(56 / 255, 89 / 255, 179 / 255)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(1, 1, 1)
     love.graphics.print(love.timer.getFPS(), 0, 0)

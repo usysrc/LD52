@@ -10,32 +10,37 @@ return function(game)
 
     map.tiles = {}
 
+    map.placeObject = function(self, i, j)
+        if math.random() < 0.05 then
+            local object
+            if math.random() < 0.5 then
+                object = TileObject.Rock(game, i, j)
+            else
+                object = TileObject.Tree(game, i, j)
+            end
+            if object and not map:get(i, j, 1) then
+                map:set(i, j, 1, object)
+                add(game.objects, object)
+            end
+        end
+    end
+
     for i = 1, map.width do
         for j = 1, map.height do
             local tile = Tile.Grass(game, i, j)
             add(map.tiles, tile)
             map:set(i, j, 0, tile)
-
-            if math.random() < 0.05 then
-                local object
-                if math.random() < 0.5 then
-                    object = TileObject.Rock(game, i, j)
-                else
-                    object = TileObject.Tree(game, i, j)
-                end
-
-                if object then
-                    map:set(i, j, 1, object)
-                    add(game.objects, object)
-                end
-
-            end
+            map:placeObject(i, j)
         end
     end
-    add(game.objects, TileObject.Totem(game, map.width, map.height / 2))
-    add(game.objects, TileObject.Totem(game, math.floor(map.width / 2), 1))
-    add(game.objects, TileObject.Totem(game, math.floor(map.width / 2), map.height))
-    add(game.objects, TileObject.Totem(game, 1, map.height / 2))
+
+    local i, j = map.width, math.floor(map.height / 2)
+    local object = map:get(i, j, 1)
+    if object then
+        del(game.objects, object)
+    end
+    object = add(game.objects, TileObject.Expander(game, i, j))
+    map:set(i, j, 1, object)
 
     local possibleResourceSpawns = {
         TileObject.Rock, TileObject.Tree
@@ -90,29 +95,49 @@ return function(game)
             end
         end
 
-        for i = x - 2, x + 2 do
-            for j = y - 2, y + 2 do
+
+        local w, h = 3, 3
+
+        for i = x - w, x + w do
+            for j = y - h, y + h do
                 addGrass(i, j)
-
-            end
-        end
-
-        for i = x - 2, x + 2 do
-            for j = y - 2, y + 2 do
-                if math.random() < 0.1 then
-                    if not map:get(i + 1, j, 0) or not map:get(i - 1, j, 0) or not map:get(i, j + 1, 0) or
-                        not map:get(i, j - 1, 0) then
-                        local object = TileObject.Totem(game, i, j)
-                        add(game.objects, object)
-                        map:set(i, j, 1, object)
-
-                    end
+                if i > x - 2 and i < x + 3 and j > y - 2 and j < y + 3 then
+                    map:placeObject(i, j)
                 end
             end
         end
 
+        -- place the expander
+        local locations = {}
+        for i = x - w, x + w do
+            for j = y - h, y + h do
+                if not map:get(i + 1, j, 0) or not map:get(i - 1, j, 0) or
+                    not map:get(i, j + 1, 0) or
+                    not map:get(i, j - 1, 0) then
+                    if not map:get(i, j, 1) then
+                        add(locations, { i = i, j = j })
+                    end
+                end
+            end
+        end
+        for n = 1, 3 do
+            local loc = locations[math.random(#locations)]
+            local i, j = loc.i, loc.j
+            local object = TileObject.Expander(game, i, j)
+            add(game.objects, object)
+            map:set(i, j, 1, object)
+        end
 
-
+        -- cleanup
+        for object in all(game.objects) do
+            if object.config and object.config.name == "expander" then
+                local i, j = object.i, object.j
+                if map:get(i + 1, j, 0) and map:get(i - 1, j, 0) and map:get(i, j + 1, 0) and map:get(i, j - 1, 0) then
+                    del(game.objects, object)
+                    map:set(i, j, 1, nil)
+                end
+            end
+        end
         table.sort(map.tiles, function(a, b) return a.j < b.j end)
     end
 
