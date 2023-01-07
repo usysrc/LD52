@@ -44,5 +44,18 @@ return {
         return Item(game, x, y, Image.wood, {
             name = "Wood"
         })
+    end,
+    Expando = function(game, x, y)
+        local TileObject = require("src.entities.TileObject")
+
+        return Item(game, x, y, Image.expando, {
+            name = "Expando",
+            needs = {
+                Stone = 3,
+                Wood = 2
+            },
+            placeable = true,
+            places = TileObject.Expander(game, 1, 1),
+        })
     end
 }

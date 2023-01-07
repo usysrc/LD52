@@ -41,7 +41,6 @@ return function(game)
         end
         object = add(game.objects, what(game, i, j))
         map:set(i, j, 1, object)
-
     end
 
     local i, j = map.width, math.floor(map.height / 2)
@@ -59,11 +58,11 @@ return function(game)
         local treeCount = 0
         local rockCount = 0
         for object in all(game.objects) do
-            if object.config and object.config.name == "rock" then rockCount = rockCount + 1 end
-            if object.config and object.config.name == "tree" then treeCount = treeCount + 1 end
+            if object.config and object.config.name == "Rock" then rockCount = rockCount + 1 end
+            if object.config and object.config.name == "Tree" then treeCount = treeCount + 1 end
         end
         -- spawn an object
-        if math.random() < 0.01 and math.random() < 0.2 then
+        if math.random() < 0.5 and math.random() < 0.2 then
             local t = self.tiles[math.random(#self.tiles)]
             local o = map:get(t.i, t.j, 1)
             if not o then
@@ -139,7 +138,7 @@ return function(game)
 
         -- cleanup
         for object in all(game.objects) do
-            if object.config and object.config.name == "expander" then
+            if object.config and object.config.name == "Expander" then
                 local i, j = object.i, object.j
                 if map:get(i + 1, j, 0) and map:get(i - 1, j, 0) and map:get(i, j + 1, 0) and map:get(i, j - 1, 0) then
                     del(game.objects, object)

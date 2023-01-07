@@ -96,20 +96,36 @@ end
 
 return {
     Rock = function(game, i, j) return TileObject(game, i, j, Image.rock,
-            { harvestable = true, name = "rock", maxhp = 30, hp = 30, drops = Item.Stone })
+            { harvestable = true, name = "Rock", maxhp = 2, hp = 2, drops = Item.Stone })
     end,
     Tree = function(game, i, j) return TileObject(game, i, j, Image.tree,
-            { harvestable = true, name = "tree", maxhp = 20, hp = 20, drops = Item.Wood })
+            { harvestable = true, name = "Tree", maxhp = 2, hp = 2, drops = Item.Wood })
     end,
     Expander = function(game, i, j)
-        local object = TileObject(game, i, j, Image.expander, { name = "expander", maxhp = 8, hp = 8 })
+        local object = TileObject(game, i, j, Image.expander, { name = "Expander", maxhp = 8, hp = 8 })
         object.afterDestroy = function(self)
             game.map:extend(i, j)
+        end
+        object.interact = function(self)
+            local wood
+            for item in all(game.player.inventory) do
+                if item.name == "Wood" then wood = item end
+            end
+            if not wood then return end
+            wood.amount = wood.amount - 1
+            if wood.amount <= 0 then
+                del(game.player.inventory, wood)
+            end
+            self.config.hp = self.config.hp - 1
+            if self.config.hp <= 0 then
+                del(game.objects, self)
+                self:afterDestroy()
+            end
         end
         return object
     end,
     GridSlot = function(game, i, j)
-        local object = TileObject(game, i, j, Image.gridslot, { name = "gridslot" })
+        local object = TileObject(game, i, j, Image.gridslot, { name = "Gridslot" })
         object.distance = 0
         object.interact = function(self)
             local item = game.player.inventory[game.inventory.selected]
