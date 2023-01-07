@@ -75,3 +75,5 @@ Music = Proxy(function(k) return love.audio.newSource('music/' .. k .. '.ogg', '
 -- or    
     Sfx.explosion:play()
 --]]
+
+love.graphics.setFont(love.graphics.newFont("fonts/HelvetiPixel.ttf", 32))

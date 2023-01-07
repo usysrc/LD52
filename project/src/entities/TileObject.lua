@@ -1,6 +1,7 @@
-local timer = requireLibrary("hump.timer")
-local const = require("src.const")
+local timer  = requireLibrary("hump.timer")
+local const  = require("src.const")
 local vector = requireLibrary("hump.vector")
+local Item   = require("src.entities.Item")
 
 local TileObject = function(game, i, j, img, config)
     local tileObject = {
@@ -29,38 +30,51 @@ local TileObject = function(game, i, j, img, config)
             end
         end,
         afterDestroy = function(self) end,
+        harvest = function(self)
+            timer.tween(0.1, self, { scaleY = 1.2 }, "quad", function()
+                timer.tween(0.4, self, { scaleY = 1 }, "bounce", function()
+                end)
+            end)
+            self.color = { 0, 0, 1 }
+            timer.after(0.1, function()
+                self.color = { 1, 1, 1 }
+            end)
+            self.r = math.random() * 0.1
+            timer.tween(0.5, self, { r = 0 }, "bounce")
+
+            self.config.hp = self.config.hp - 1
+
+            if self.config.hp <= 0 then
+                del(game.objects, self)
+                game.map:set(i, j, 1, nil)
+                if self.config.drops then
+                    add(game.objects,
+                        self.config.drops(game, self.x + const.tilewidth / 2, self.y + const.tileheight / 2))
+                end
+                self:afterDestroy()
+            end
+        end,
         mousepressed = function(self, x, y, btn)
             if btn == 1 and self:mouseOver() then
-
-                timer.tween(0.1, self, { scaleY = 1.2 }, "quad", function()
-                    timer.tween(0.4, self, { scaleY = 1 }, "bounce", function()
-                    end)
-                end)
-                self.color = { 0, 0, 1 }
-                timer.after(0.1, function()
-                    self.color = { 1, 1, 1 }
-                end)
-                self.r = math.random() * 0.1
-                timer.tween(0.5, self, { r = 0 }, "bounce")
-
-                self.config.hp = self.config.hp - 1
-
-                if self.config.hp <= 0 then
-                    del(game.objects, self)
-                    game.map:set(i, j, 1, nil)
-                    self:afterDestroy()
+                if self.config.harvestable then
+                    self:harvest()
+                else
+                    if self.interact then self:interact() end
                 end
             end
         end,
         draw = function(self)
             if self:mouseOver() then
                 love.graphics.draw(Image.selector, self.x, self.y + 9 + math.sin(self.time * 10))
-                love.graphics.setColor(0, 0, 0)
-                love.graphics.rectangle("fill", self.x + const.tilewidth / 2 - 8, self.y + const.tileheight + 12, 16, 5)
-                love.graphics.setColor(1, 0, 0)
-                love.graphics.rectangle("fill", self.x + const.tilewidth / 2 - 8, self.y + const.tileheight + 12,
-                    16 * self.config.hp / self.config.maxhp, 4)
-                love.graphics.setColor(1, 1, 1)
+                if self.config.hp then
+                    love.graphics.setColor(0, 0, 0)
+                    love.graphics.rectangle("fill", self.x + const.tilewidth / 2 - 8, self.y + const.tileheight + 12, 16
+                        , 5)
+                    love.graphics.setColor(1, 0, 0)
+                    love.graphics.rectangle("fill", self.x + const.tilewidth / 2 - 8, self.y + const.tileheight + 12,
+                        16 * self.config.hp / self.config.maxhp, 4)
+                    love.graphics.setColor(1, 1, 1)
+                end
             end
             --love.graphics.rectangle("line", self.x, self.y, const.tilewidth, const.tilewidth)
             love.graphics.setColor(self.color)
@@ -69,6 +83,7 @@ local TileObject = function(game, i, j, img, config)
                 1, self.scaleY,
                 const.tilewidth / 2,
                 const.tileheight)
+            if self.afterDraw then self:afterDraw() end
         end
     }
     tileObject.config = {}
@@ -80,13 +95,43 @@ end
 
 
 return {
-    Rock = function(game, i, j) return TileObject(game, i, j, Image.rock, { name = "rock", maxhp = 12, hp = 12 }) end,
-    Tree = function(game, i, j) return TileObject(game, i, j, Image.tree, { name = "tree", maxhp = 8, hp = 8 }) end,
+    Rock = function(game, i, j) return TileObject(game, i, j, Image.rock,
+            { harvestable = true, name = "rock", maxhp = 30, hp = 30, drops = Item.Stone })
+    end,
+    Tree = function(game, i, j) return TileObject(game, i, j, Image.tree,
+            { harvestable = true, name = "tree", maxhp = 20, hp = 20, drops = Item.Wood })
+    end,
     Expander = function(game, i, j)
-        local tile = TileObject(game, i, j, Image.expander, { name = "expander", maxhp = 8, hp = 8 })
-        tile.afterDestroy = function(self)
+        local object = TileObject(game, i, j, Image.expander, { name = "expander", maxhp = 8, hp = 8 })
+        object.afterDestroy = function(self)
             game.map:extend(i, j)
         end
-        return tile
+        return object
+    end,
+    GridSlot = function(game, i, j)
+        local object = TileObject(game, i, j, Image.gridslot, { name = "gridslot" })
+        object.distance = 0
+        object.interact = function(self)
+            local item = game.player.inventory[game.inventory.selected]
+            if not item then
+                return
+            end
+            if self.item then
+                add(game.player.inventory, self.item)
+                self.item = nil
+            end
+            self.item = item
+            del(game.player.inventory, item)
+        end
+        object.afterDraw = function(self)
+            if self.item then
+                love.graphics.draw(self.item.img, self.x + const.tilewidth / 2, self.y + const.tileheight,
+                    self.r,
+                    1, self.scaleY,
+                    const.tilewidth / 2,
+                    const.tileheight)
+            end
+        end
+        return object
     end
 }

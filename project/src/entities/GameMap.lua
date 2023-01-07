@@ -5,13 +5,13 @@ local Tile       = require("src.entities.Tile")
 
 return function(game)
     local map = Map()
-    map.width = 8
-    map.height = 8
+    map.width = 5
+    map.height = 5
 
     map.tiles = {}
 
-    map.placeObject = function(self, i, j)
-        if math.random() < 0.05 then
+    map.placeRandomObject = function(self, i, j)
+        if math.random() < 0.05 and math.random() < 0.1 then
             local object
             if math.random() < 0.5 then
                 object = TileObject.Rock(game, i, j)
@@ -30,17 +30,26 @@ return function(game)
             local tile = Tile.Grass(game, i, j)
             add(map.tiles, tile)
             map:set(i, j, 0, tile)
-            map:placeObject(i, j)
+            map:placeRandomObject(i, j)
         end
     end
 
-    local i, j = map.width, math.floor(map.height / 2)
-    local object = map:get(i, j, 1)
-    if object then
-        del(game.objects, object)
+    map.placeObject = function(self, i, j, what)
+        local object = map:get(i, j, 1)
+        if object then
+            del(game.objects, object)
+        end
+        object = add(game.objects, what(game, i, j))
+        map:set(i, j, 1, object)
+
     end
-    object = add(game.objects, TileObject.Expander(game, i, j))
-    map:set(i, j, 1, object)
+
+    local i, j = map.width, math.floor(map.height / 2)
+    map:placeObject(i, j, TileObject.Expander)
+
+
+    -- local i, j = math.floor(map.width / 2) - 1, math.floor(map.height / 2) - 2
+    -- map:placeObject(i, j, TileObject.GridSlot)
 
     local possibleResourceSpawns = {
         TileObject.Rock, TileObject.Tree
@@ -54,7 +63,7 @@ return function(game)
             if object.config and object.config.name == "tree" then treeCount = treeCount + 1 end
         end
         -- spawn an object
-        if math.random() < 0.01 and math.random() < 0.5 then
+        if math.random() < 0.01 and math.random() < 0.2 then
             local t = self.tiles[math.random(#self.tiles)]
             local o = map:get(t.i, t.j, 1)
             if not o then
@@ -102,7 +111,7 @@ return function(game)
             for j = y - h, y + h do
                 addGrass(i, j)
                 if i > x - 2 and i < x + 3 and j > y - 2 and j < y + 3 then
-                    map:placeObject(i, j)
+                    map:placeRandomObject(i, j)
                 end
             end
         end

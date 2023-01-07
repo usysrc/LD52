@@ -23,6 +23,8 @@ return function(game)
 
     player.animationSpeed = 10
 
+    player.inventory = {}
+
     player.update = function(self, dt)
         local x, y = 0, 0
         local moved = false

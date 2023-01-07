@@ -8,6 +8,7 @@ local GameMap   = require("src.entities.GameMap")
 local Player    = require("src.entities.Player")
 local Camera    = require("libs.hump.camera")
 local const     = require("src.const")
+local Inventory = require("src.entities.Inventory")
 Game            = Gamestate.new()
 
 function Game:enter()
@@ -16,6 +17,7 @@ function Game:enter()
     Game.cam = Camera(0, 0)
     Game.cam.scale = const.zoom
     Game.player = Player(Game)
+    Game.inventory = Inventory(Game)
     Game.cam:lookAt(Game.player.x, Game.player.y)
 end
 
@@ -35,6 +37,7 @@ function Game:draw()
     Game.cam:attach()
     Game.map:draw()
     Game.cam:detach()
+    Game.inventory:draw()
 end
 
 function Game:keypressed(key)
@@ -42,7 +45,12 @@ function Game:keypressed(key)
 end
 
 function Game:mousepressed(x, y, btn)
+    if Game.inventory:mousepressed(x, y, btn) then return end
     for object in all(Game.objects) do
         if object.mousepressed then object:mousepressed(x, y, btn) end
     end
+end
+
+function Game:wheelmoved(x, y)
+    Game.inventory:wheelmoved(x, y)
 end
