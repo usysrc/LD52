@@ -1,11 +1,12 @@
 local const = require("src.const")
+local Item  = require("src.entities.Item")
 
 return function(game)
     local player = {
         x = 5 * const.tilewidth,
         y = 5 * const.tileheight,
         distance = 0,
-        vel = 100,
+        vel = 50,
         dir = 1,
         color = { 1, 1, 1 }
     }
@@ -75,7 +76,26 @@ return function(game)
     end
 
     player.keypressed = function(self, key)
-
+        -- if key == "f" then
+        --     local item = self.inventory[game.inventory.selected]
+        --     if not item then return end
+        --     if item.name == "Coin" then return end
+        --     Sfx.sell:play()
+        --     local found
+        --     for inventoryItem in all(game.player.inventory) do
+        --         if inventoryItem.name == "Coin" then
+        --             inventoryItem.amount = inventoryItem.amount + (item.value or 1)
+        --             found = true
+        --         end
+        --     end
+        --     if not found then
+        --         add(self.inventory, Item.Coin(game, 1, 1))
+        --     end
+        --     item.amount = item.amount - 1
+        --     if item.amount <= 0 then
+        --         del(self.inventory, item)
+        --     end
+        -- end
     end
     add(Game.objects, player)
     return player

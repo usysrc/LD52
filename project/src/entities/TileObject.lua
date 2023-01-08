@@ -1,7 +1,9 @@
-local timer  = requireLibrary("hump.timer")
-local const  = require("src.const")
-local vector = requireLibrary("hump.vector")
-local Item   = require("src.entities.Item")
+local timer         = requireLibrary("hump.timer")
+local const         = require("src.const")
+local vector        = requireLibrary("hump.vector")
+local Item          = require("src.entities.Item")
+local FireParticles = require("src.entities.FireParticles")
+
 
 local TileObject = function(game, i, j, img, config)
     local tileObject = {
@@ -18,6 +20,7 @@ local TileObject = function(game, i, j, img, config)
         time = 0,
         update = function(self, dt)
             self.time = self.time + dt
+            if self.afterUpdate then self:afterUpdate(dt) end
         end,
         mouseOver = function(self)
             local lx, ly = game.cam:mousePosition()
@@ -31,6 +34,7 @@ local TileObject = function(game, i, j, img, config)
         end,
         afterDestroy = function(self) end,
         harvest = function(self)
+            if self.config.harvestSfx then self.config.harvestSfx:play() end
             timer.tween(0.1, self, { scaleY = 1.2 }, "quad", function()
                 timer.tween(0.4, self, { scaleY = 1 }, "bounce", function()
                 end)
@@ -42,14 +46,36 @@ local TileObject = function(game, i, j, img, config)
             self.r = math.random() * 0.1
             timer.tween(0.5, self, { r = 0 }, "bounce")
 
-            self.config.hp = self.config.hp - 1
+            local amount = 1
+            local item = game.player.inventory[game.inventory.selected]
+            if item and item.harvestBoost then
+                amount = item.harvestBoost
+                item.duration = item.duration - 1
+                if item.duration <= 0 then
+                    Sfx.breaks:play()
+                    item.amount = item.amount - 1
+                    if item.amount == 0 then
+                        del(game.player.inventory, item)
+                    else
+                        item.duration = item.maxduration
+                    end
+                end
+            end
+            self.config.hp = self.config.hp - amount
 
             if self.config.hp <= 0 then
+                Sfx.done:play()
                 del(game.objects, self)
                 game.map:set(i, j, 1, nil)
                 if self.config.drops then
                     add(game.objects,
-                        self.config.drops(game, self.x + const.tilewidth / 2, self.y + const.tileheight / 2))
+                        self.config.drops(game, self.x + const.tilewidth / 2, self.y + const.tileheight / 2 -
+                            math.random()))
+                    if math.random() < 0.1 then
+                        add(game.objects,
+                            self.config.drops(game, self.x + const.tilewidth / 2,
+                                self.y + const.tileheight / 2 - math.random()))
+                    end
                 end
                 self:afterDestroy()
             end
@@ -96,30 +122,155 @@ end
 
 return {
     Rock = function(game, i, j) return TileObject(game, i, j, Image.rock,
-            { harvestable = true, name = "Rock", maxhp = 2, hp = 2, drops = Item.Stone })
+            { harvestable = true, name = "Rock", maxhp = 30, hp = 30, drops = Item.Stone, harvestSfx = Sfx.stone,
+                minlevel = 1 })
+    end,
+    GoldOre = function(game, i, j) return TileObject(game, i, j, Image.goldore,
+            { harvestable = true, name = "GoldOre", maxhp = 50, hp = 50, drops = Item.Gold, harvestSfx = Sfx.stone,
+                minlevel = 1 })
+    end,
+    IronOre = function(game, i, j) return TileObject(game, i, j, Image.ironore,
+            { harvestable = true, name = "IronOre", maxhp = 400, hp = 400, drops = Item.Iron, harvestSfx = Sfx.stone,
+                minlevel = 2 })
     end,
     Tree = function(game, i, j) return TileObject(game, i, j, Image.tree,
-            { harvestable = true, name = "Tree", maxhp = 2, hp = 2, drops = Item.Wood })
+            { harvestable = true, name = "Tree", maxhp = 20, hp = 20, drops = Item.Wood, harvestSfx = Sfx.wood,
+                minlevel = 1 })
     end,
+
     Expander = function(game, i, j)
-        local object = TileObject(game, i, j, Image.expander, { name = "Expander", maxhp = 8, hp = 8 })
+        local object = TileObject(game, i, j, Image.expander,
+            { name = "Expander", maxhp = 2, hp = 2, level = 1, minlevel = 1 })
         object.afterDestroy = function(self)
-            game.map:extend(i, j)
+            Sfx.expand:play()
+            game.map:extend(i, j, self.config.level)
         end
         object.interact = function(self)
-            local wood
+            local coin
             for item in all(game.player.inventory) do
-                if item.name == "Wood" then wood = item end
+                if item.name == "Coin" then coin = item end
             end
-            if not wood then return end
-            wood.amount = wood.amount - 1
-            if wood.amount <= 0 then
-                del(game.player.inventory, wood)
+            if not coin then return end
+            Sfx.load:play()
+            coin.amount = coin.amount - 1
+            if coin.amount <= 0 then
+                del(game.player.inventory, coin)
             end
             self.config.hp = self.config.hp - 1
             if self.config.hp <= 0 then
                 del(game.objects, self)
                 self:afterDestroy()
+            end
+        end
+        return object
+    end,
+    -- stuff that didnt make it into the compo:
+    Smelter = function(game, i, j)
+        local object = TileObject(game, i, j, Image.smelter,
+            { harvestable = false, name = "Smelter" })
+
+        object.interact = function(self)
+            if self.item then return end
+            local item = game.player.inventory[game.inventory.selected]
+            if not item or item.name ~= "Gold" then
+                return
+            end
+            if self.item then
+                add(game.player.inventory, self.item)
+                self.item = nil
+            end
+            if item.amount == 1 then
+                self.item = item
+                del(game.player.inventory, item)
+            else
+                self.item = Item[item.name](game, 1, 1)
+                item.amount = item.amount - 1
+            end
+        end
+        object.afterUpdate = function(self, dt)
+            if self.item and not self.active then
+                -- check if an active furnace is are near to the smelter
+                local furnaces = {}
+                for object in all(game.objects) do
+                    if object.config and object.config.name == "Furnace" then
+                        add(furnaces, object)
+                    end
+                end
+
+                local near
+                for furnace in all(furnaces) do
+                    if vector.new(furnace.x, furnace.y):dist(vector.new(self.x, self.y)) < 128 then
+                        near = furnace
+                    end
+                end
+
+                if not near or not near.item then return end
+                self.active = true
+                FireParticles(game, self, self.x + const.tilewidth / 2, self.y + const.tilewidth / 2 + 6)
+                timer.after(10, function()
+                    self.item = nil
+                    self.active = false
+                    add(game.objects, Item.GoldIngot(game, self.x, self.y + 32))
+                end)
+
+            end
+        end
+        object.afterDraw = function(self)
+            if self.item then
+                love.graphics.draw(self.item.img, self.x + 8 + const.tilewidth / 2, self.y + const.tileheight + 10,
+                    self.r,
+                    1, self.scaleY,
+                    const.tilewidth / 2,
+                    const.tileheight)
+                love.graphics.print(item.amount, self.x, self.y)
+            end
+        end
+        return object
+    end,
+    Furnace = function(game, i, j)
+        local object = TileObject(game, i, j, Image.furnace,
+            { harvestable = false, name = "Furnace" })
+
+        object.interact = function(self)
+            local item = game.player.inventory[game.inventory.selected]
+            if not item or item.name ~= "Wood" then
+                return
+            end
+            if self.item and self.item.name ~= item.name then
+                add(game.player.inventory, self.item)
+                self.item = nil
+            end
+            if not self.item then
+                self.item = Item[item.name](game, 1, 1)
+            elseif self.item and self.item.name == item.name then
+                self.item.amount = self.item.amount + 1
+            end
+            item.amount = item.amount - 1
+            if item.amount <= 0 then
+                del(game.player.inventory, item)
+            end
+            local burnItem
+            burnItem = function()
+                timer.after(5, function()
+                    self.item.amount = self.item.amount - 1
+                    if self.item.amount <= 0 then
+                        self.item = nil
+                    else
+                        burnItem()
+                    end
+                end)
+            end
+            burnItem()
+
+            FireParticles(game, self, self.x + const.tilewidth / 2, self.y + const.tilewidth / 2 + 6)
+        end
+        object.afterDraw = function(self)
+            if self.item then
+                love.graphics.draw(self.item.img, self.x + 8 + const.tilewidth / 2, self.y + const.tileheight + 16,
+                    self.r,
+                    1, self.scaleY,
+                    const.tilewidth / 2,
+                    const.tileheight)
             end
         end
         return object

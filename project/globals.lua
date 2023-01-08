@@ -67,7 +67,11 @@ end
 
 -- Standard proxies
 Image = Proxy(function(k) return love.graphics.newImage('img/' .. k .. '.png') end)
-Sfx   = Proxy(function(k) return love.audio.newSource('sfx/' .. k .. '.ogg', 'static') end)
+Sfx   = Proxy(function(k)
+	local src = love.audio.newSource('sfx/' .. k .. '.ogg', 'static')
+	src:setVolume(0.2)
+	return src
+end)
 Music = Proxy(function(k) return love.audio.newSource('music/' .. k .. '.ogg', 'stream') end)
 
 --[[ examples:

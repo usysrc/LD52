@@ -13,6 +13,11 @@ local Construction = require("src.entities.Construction")
 Game               = Gamestate.new()
 
 function Game:enter()
+    Music.tropical:setVolume(0.2)
+    Music.tropical:setLooping(true)
+
+    love.audio.play(Music.tropical)
+
     Game.objects = {}
     Game.map = GameMap(Game)
     Game.cam = Camera(0, 0)
@@ -35,7 +40,7 @@ function Game:draw()
     love.graphics.setColor(56 / 255, 89 / 255, 179 / 255)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print(love.timer.getFPS(), 0, 0)
+    -- love.graphics.print(love.timer.getFPS(), 0, 0)
     Game.cam:attach()
     Game.map:draw()
     Game.inventory:drawOnMap()
